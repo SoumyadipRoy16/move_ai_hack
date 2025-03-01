@@ -81,9 +81,7 @@ export default function Home() {
               {/* Left Column: Heading and Description */}
               <div className="flex flex-col justify-center space-y-4">
                 <div className="text-6xl font-bold tracking-tighter text-neutral-600 dark:text-neutral-400">
-                    AI-Powered Crypto
-                    <FlipWords words={words}/>Bot
-                    
+                    &nbsp;AI-Powered Crypto <FlipWords words={words}/>Bot
                 </div>
                 <p className="max-w-[600px] text-muted-foreground md:text-xl">
                     Automatically detect market opportunities from Telegram groups and trade with confidence using our
