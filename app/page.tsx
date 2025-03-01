@@ -6,10 +6,11 @@ import { ArrowRight, Bot, LineChart, Shield, Wallet } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AuthForm } from "@/components/auth-form"
 import { CardStack } from "@/components/ui/card-stack"
+import { FlipWords } from "@/components/ui/flip-words"
 
 export default function Home() {
   const [showAuthForm, setShowAuthForm] = useState(false)
-
+  const words = ["Trading","Intelligence", "Detection", "Identification"];
   // Define the stack of cards
   const cards = [
     {
@@ -79,15 +80,15 @@ export default function Home() {
             <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
               {/* Left Column: Heading and Description */}
               <div className="flex flex-col justify-center space-y-4">
-                <div className="space-y-2">
-                  <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                    AI-Powered Crypto Trading Bot
-                  </h1>
-                  <p className="max-w-[600px] text-muted-foreground md:text-xl">
+                <div className="text-6xl font-bold tracking-tighter text-neutral-600 dark:text-neutral-400">
+                    AI-Powered Crypto
+                    <FlipWords words={words}/>Bot
+                    
+                </div>
+                <p className="max-w-[600px] text-muted-foreground md:text-xl">
                     Automatically detect market opportunities from Telegram groups and trade with confidence using our
                     advanced AI agent.
-                  </p>
-                </div>
+                </p>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
                   <Link href="/register">
                     <Button size="lg" className="gap-1.5">
