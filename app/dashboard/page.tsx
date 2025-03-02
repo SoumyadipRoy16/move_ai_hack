@@ -21,6 +21,7 @@ export default function Dashboard() {
   };
   
   useEffect(() => {
+    // Initialize from localStorage if available
     const storedBalance = localStorage.getItem("dashboardBalance")
     if (storedBalance) {
       const numBalance = parseFloat(storedBalance)
@@ -44,7 +45,6 @@ export default function Dashboard() {
       const formattedChange = change > 0 ? `+${change}%` : `${change}%`
       setPercentChange(formattedChange)
       
-      // Update previous balance for next calculation
       setPreviousBalance(newBalance)
     }
     
