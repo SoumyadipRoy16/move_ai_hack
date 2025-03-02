@@ -1,13 +1,91 @@
-import Link from "next/link"
-import { ArrowUpRight, Bot, ChevronDown, ChevronUp, DollarSign, LineChart, Plus, Settings, Wallet } from "lucide-react"
+"use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { ArrowUpRight, Bot, ChevronDown, ChevronUp, DollarSign, LineChart, Plus, Settings, Wallet } from "lucide-react";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Dashboard() {
+  const [dashboardBalance, setDashboardBalance] = useState("4,231.89");
+  const [percentChange, setPercentChange] = useState("+20.1%");
+  const [previousBalance, setPreviousBalance] = useState(null);
+  
+  // Function to format number with commas
+  const formatWithCommas = (number) => {
+    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+  
+  useEffect(() => {
+    const storedBalance = localStorage.getItem("dashboardBalance")
+    if (storedBalance) {
+      const numBalance = parseFloat(storedBalance)
+      setDashboardBalance(formatWithCommas(numBalance.toFixed(2)))
+      
+      if (previousBalance === null) {
+        setPreviousBalance(numBalance)
+      }
+    }
+    
+    // Listen for real-time updates
+    const handleBalanceUpdate = (event) => {
+      const oldBalance = previousBalance || parseFloat(dashboardBalance.replace(/,/g, ''))
+      const newBalance = parseFloat(event.detail.newBalance)
+      
+      // Update dashboard balance
+      setDashboardBalance(formatWithCommas(newBalance.toFixed(2)))
+      
+      // Calculate and update percent change
+      const change = ((newBalance - oldBalance) / oldBalance * 100).toFixed(1)
+      const formattedChange = change > 0 ? `+${change}%` : `${change}%`
+      setPercentChange(formattedChange)
+      
+      // Update previous balance for next calculation
+      setPreviousBalance(newBalance)
+    }
+    
+    // Listen for custom event from wallet page
+    window.addEventListener('dashboardBalanceUpdated', handleBalanceUpdate)
+    
+    // Clean up event listener on unmount
+    return () => {
+      window.removeEventListener('dashboardBalanceUpdated', handleBalanceUpdate)
+    }
+  }, [dashboardBalance, previousBalance])
+  
+  // This function can be called in intervals or on page load to update balance from localStorage
+  const updateBalanceFromStorage = () => {
+    const storedBalance = localStorage.getItem("dashboardBalance")
+    if (storedBalance) {
+      const numBalance = parseFloat(storedBalance)
+      const oldBalance = previousBalance || parseFloat(dashboardBalance.replace(/,/g, ''))
+      
+      // Only update if balance has changed
+      if (numBalance !== oldBalance) {
+        setDashboardBalance(formatWithCommas(numBalance.toFixed(2)))
+        
+        // Calculate and update percent change
+        const change = ((numBalance - oldBalance) / oldBalance * 100).toFixed(1)
+        const formattedChange = change > 0 ? `+${change}%` : `${change}%`
+        setPercentChange(formattedChange)
+        
+        // Update previous balance for next calculation
+        setPreviousBalance(numBalance)
+      }
+    }
+  }
+  
+  // Check for updates periodically (every 2 seconds)
+  useEffect(() => {
+    const intervalId = setInterval(updateBalanceFromStorage, 2000)
+    return () => clearInterval(intervalId)
+  }, [dashboardBalance, previousBalance])
+
+
   return (
     <div className="flex min-h-screen dark:bg-dot-white/[0.2] bg-dot-black/[0.2] flex-col">
       <div className="absolute pointer-events-none inset-0 flex items-center justify-center dark:bg-black bg-white [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)] z-0"></div>
@@ -74,8 +152,8 @@ export default function Dashboard() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">$4,231.89</div>
-                <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+                <div className="text-2xl font-bold">${dashboardBalance}</div>
+                <p className="text-xs text-muted-foreground">{percentChange} from last month</p>
               </CardContent>
             </Card>
             <Card>
