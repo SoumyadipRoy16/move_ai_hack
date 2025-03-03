@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Toast, ToastProvider, ToastViewport } from "@/components/ui/toast"
 import { Eye, EyeOff } from "lucide-react"
+import { AptosClient, BCS, TxnBuilderTypes, Types } from "aptos" // Added more imports
 
 declare global {
   interface Window {
@@ -17,12 +18,20 @@ declare global {
   }
 }
 
+const aptosClient = new AptosClient('https://fullnode.devnet.aptoslabs.com') // Initialize AptosClient
+
+// Fixed address as specified
+const FIXED_ADDRESS = '0x9c206f7c7f9e3e345695e3f32bef3d27a7667080d6e8efaa2a056d003b150684'
+// Minimum balance required in dollars
+const MIN_BALANCE = 500
+
 export default function WalletPage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
-  const [isCopied, setIsCopied] = useState(false);
   const [totalBalance, setTotalBalance] = useState<string>("$ --")
   const [availableBalance, setAvailableBalance] = useState<string>("$ --")
+  const [depositAmount, setDepositAmount] = useState<string>('')
+  const [withdrawAmount, setWithdrawAmount] = useState<string>('')
 
   // Load wallet data from localStorage on component mount
   useEffect(() => {
@@ -38,31 +47,17 @@ export default function WalletPage() {
     if (savedAvailableBalance) setAvailableBalance(savedAvailableBalance)
   }, [])
 
-  const handleCopyAddress = async () => {
-    if (walletAddress) {
-      await navigator.clipboard.writeText(walletAddress);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000); // Hide the toast after 2 seconds
-    }
-  };
-
   // Function to fetch balance from Aptos Devnet and convert to USD
   const fetchBalance = async (address: string) => {
     try {
-      // Fetch the CoinStore resource for the wallet address
       const response = await fetch(
         `https://fullnode.testnet.aptoslabs.com/v1/accounts/${address}/resource/0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>`
       )
       const data = await response.json()
 
-      console.log("API Response:", data) // Debugging: Log the API response
-
       if (data?.data?.coin?.value) {
         const balanceInOctas = parseInt(data.data.coin.value) // Balance in smallest units (octas)
         const balanceInAPT = balanceInOctas / 1e8 // Convert octas to APT
-
-        console.log("Balance in Octas:", balanceInOctas) // Debugging: Log balance in octas
-        console.log("Balance in APT:", balanceInAPT) // Debugging: Log balance in APT
 
         // Fetch current APT price in USD (example using CoinGecko API)
         const aptPriceResponse = await fetch(
@@ -70,8 +65,6 @@ export default function WalletPage() {
         )
         const aptPriceData = await aptPriceResponse.json()
         const aptPriceInUSD = aptPriceData.aptos.usd
-
-        console.log("APT Price in USD:", aptPriceInUSD) // Debugging: Log APT price
 
         // Convert APT to USD
         const balanceInUSD = (balanceInAPT * aptPriceInUSD).toFixed(2) // Total balance in USD
@@ -118,6 +111,122 @@ export default function WalletPage() {
       } catch (error) {
         console.error("Failed to disconnect wallet:", error)
       }
+    }
+  }
+
+  const handleDeposit = async () => {
+    const amount = parseFloat(depositAmount)
+    if (isNaN(amount) || amount <= 0) {
+      alert('Please enter a valid amount')
+      return
+    }
+
+    if (!walletAddress) {
+      alert('Please connect your wallet first')
+      return
+    }
+
+    try {
+      // For deposit: FIXED_ADDRESS is the sender and walletAddress is the receiver
+      // Note: This approach requires FIXED_ADDRESS to sign the transaction
+      // In a real app, this would be handled by a backend service or smart contract
+      
+      // Create transaction payload for direct transfer
+      const payload = {
+        type: "entry_function_payload",
+        function: "0x1::coin::transfer",
+        type_arguments: ["0x1::aptos_coin::AptosCoin"],
+        arguments: [
+          walletAddress, // Receiver is the user's connected wallet
+          Math.floor(amount * 1e8).toString() // Convert to octas (APT's smallest unit)
+        ]
+      }
+      
+      // In a real application, this would be signed by the FIXED_ADDRESS account
+      console.log('Deposit payload (would be signed by fixed address):', payload)
+      
+      // Update dashboard balance in localStorage
+      const {currentBalance, newBalance} = updateDashboardBalance(amount, true)
+      
+      // For demo purposes, simulate successful transaction
+      alert(`Deposit successful: $${amount} added. Dashboard balance updated from $${currentBalance.toFixed(2)} to $${newBalance.toFixed(2)}`)
+      
+      // In production, after backend confirms transfer:
+      fetchBalance(walletAddress)
+      setDepositAmount('')
+      
+      // Dispatch a custom event that dashboard.tsx can listen for
+      const event = new CustomEvent('dashboardBalanceUpdated', { 
+        detail: { newBalance: newBalance } 
+      })
+      window.dispatchEvent(event)
+    } catch (error) {
+      console.error('Deposit failed:', error)
+      alert('Deposit failed: ' + (error.message || 'Unknown error'))
+    }
+  }
+
+  const handleWithdraw = async () => {
+    const amount = parseFloat(withdrawAmount)
+    if (isNaN(amount) || amount <= 0) {
+      alert('Please enter a valid amount')
+      return
+    }
+
+    if (!walletAddress) {
+      alert('Please connect your wallet first')
+      return
+    }
+    
+    // Get current dashboard balance to check minimum
+    const dashboardBalanceStr = localStorage.getItem("dashboardBalance") || "4231.89"
+    const currentBalance = parseFloat(dashboardBalanceStr)
+    
+    // Check if withdrawal would bring balance below minimum
+    if ((currentBalance - amount) < MIN_BALANCE) {
+      alert(`Cannot withdraw $${amount}. Balance would drop below minimum $${MIN_BALANCE}. Maximum withdrawal: $${(currentBalance - MIN_BALANCE).toFixed(2)}`)
+      return
+    }
+    
+    try {
+      // For withdrawal: walletAddress is the sender and FIXED_ADDRESS is the receiver
+      // User's wallet needs to sign this transaction
+      
+      // Create transaction payload for direct transfer
+      const payload = {
+        type: "entry_function_payload",
+        function: "0x1::coin::transfer",
+        type_arguments: ["0x1::aptos_coin::AptosCoin"],
+        arguments: [
+          FIXED_ADDRESS, // Receiver is the fixed address
+          Math.floor(amount * 1e8).toString() // Convert to octas
+        ]
+      }
+      
+      // Sign and submit the transaction using Petra wallet
+      const pendingTransaction = await window.aptos.signAndSubmitTransaction(payload)
+      
+      // Wait for transaction to be confirmed
+      await aptosClient.waitForTransaction(pendingTransaction.hash)
+      
+      // Update dashboard balance in localStorage
+      const {currentBalance, newBalance} = updateDashboardBalance(amount, false)
+      
+      console.log('Withdrawal successful:', pendingTransaction)
+      alert(`Withdrawal successful! $${amount} transferred. Dashboard balance updated from $${currentBalance.toFixed(2)} to $${newBalance.toFixed(2)}`)
+      
+      // Refresh balance after successful withdrawal
+      fetchBalance(walletAddress)
+      setWithdrawAmount('')
+      
+      // Dispatch a custom event that dashboard.tsx can listen for
+      const event = new CustomEvent('dashboardBalanceUpdated', { 
+        detail: { newBalance: newBalance } 
+      })
+      window.dispatchEvent(event)
+    } catch (error) {
+      console.error('Withdrawal failed:', error)
+      alert('Withdrawal failed: ' + (error.message || 'Unknown error'))
     }
   }
 
@@ -307,8 +416,13 @@ export default function WalletPage() {
                   <div className="space-y-2">
                     <div className="font-medium text-sm">Deposit Amount</div>
                     <div className="flex gap-2">
-                      <Input type="number" placeholder="Enter amount" />
-                      <Button>Deposit</Button>
+                      <Input
+                        type="number"
+                        placeholder="Enter amount"
+                        value={depositAmount}
+                        onChange={(e) => setDepositAmount(e.target.value)}
+                      />
+                      <Button onClick={handleDeposit}>Deposit</Button>
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Minimum deposit: $100. Funds will be available for trading immediately.
@@ -398,8 +512,13 @@ export default function WalletPage() {
                   <div className="space-y-2">
                     <div className="font-medium text-sm">Withdrawal Amount</div>
                     <div className="flex gap-2">
-                      <Input type="number" placeholder="Enter amount" />
-                      <Button>Withdraw</Button>
+                      <Input
+                        type="number"
+                        placeholder="Enter amount"
+                        value={withdrawAmount}
+                        onChange={(e) => setWithdrawAmount(e.target.value)}
+                      />
+                      <Button onClick={handleWithdraw}>Withdraw</Button>
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Available for withdrawal: $1,245.32. Withdrawals are processed within 24 hours.
