@@ -20,8 +20,7 @@ export default function Dashboard() {
     return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
   
-  // Add your remaining component code here...
-  // Listen for balance updates from wallet page
+
   useEffect(() => {
     // Initialize from localStorage if available
     const storedBalance = localStorage.getItem("dashboardBalance")
@@ -29,7 +28,7 @@ export default function Dashboard() {
       const numBalance = parseFloat(storedBalance)
       setDashboardBalance(formatWithCommas(numBalance.toFixed(2)))
       
-      // Store the initial balance for percentage calculations
+
       if (previousBalance === null) {
         setPreviousBalance(numBalance)
       }
@@ -48,7 +47,6 @@ export default function Dashboard() {
       const formattedChange = change > 0 ? `+${change}%` : `${change}%`
       setPercentChange(formattedChange)
       
-      // Update previous balance for next calculation
       setPreviousBalance(newBalance)
     }
     
