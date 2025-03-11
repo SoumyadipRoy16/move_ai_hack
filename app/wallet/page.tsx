@@ -28,6 +28,7 @@ const MIN_BALANCE = 500
 export default function WalletPage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
+  const [isCopied, setIsCopied] = useState(false);
   const [totalBalance, setTotalBalance] = useState<string>("$ --")
   const [availableBalance, setAvailableBalance] = useState<string>("$ --")
   const [depositAmount, setDepositAmount] = useState<string>('')
@@ -46,6 +47,14 @@ export default function WalletPage() {
     if (savedTotalBalance) setTotalBalance(savedTotalBalance)
     if (savedAvailableBalance) setAvailableBalance(savedAvailableBalance)
   }, [])
+
+  const handleCopyAddress = async () => {
+    if (walletAddress) {
+      await navigator.clipboard.writeText(walletAddress);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000); // Hide the toast after 2 seconds
+    }
+  };
 
   // Function to fetch balance from Aptos Devnet and convert to USD
   const fetchBalance = async (address: string) => {
