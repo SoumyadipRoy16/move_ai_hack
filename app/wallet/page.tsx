@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Toast, ToastProvider, ToastViewport } from "@/components/ui/toast"
 import { Eye, EyeOff } from "lucide-react"
 import { AptosClient, BCS, TxnBuilderTypes, Types } from "aptos" // Added more imports
 
@@ -27,8 +26,7 @@ const MIN_BALANCE = 500
 
 export default function WalletPage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
-  const [isBalanceVisible, setIsBalanceVisible] = useState(true);
-  const [isCopied, setIsCopied] = useState(false);
+  const [isBalanceVisible, setIsBalanceVisible] = useState(true)
   const [totalBalance, setTotalBalance] = useState<string>("$ --")
   const [availableBalance, setAvailableBalance] = useState<string>("$ --")
   const [depositAmount, setDepositAmount] = useState<string>('')
@@ -48,39 +46,30 @@ export default function WalletPage() {
     if (savedAvailableBalance) setAvailableBalance(savedAvailableBalance)
   }, [])
 
-    // Function to update the dashboard balance in localStorage
+  // Function to update the dashboard balance in localStorage
   const updateDashboardBalance = (amount, isDeposit) => {
-      // Get current dashboard balance from localStorage
-      const dashboardBalanceStr = localStorage.getItem("dashboardBalance") || "4231.89"
-      const currentBalance = parseFloat(dashboardBalanceStr)
-      
-      // Calculate new balance based on whether this is a deposit or withdrawal
-      const newBalance = isDeposit 
-        ? currentBalance + amount 
-        : currentBalance - amount
-      
-      // Format to 2 decimal places
-      const formattedBalance = newBalance.toFixed(2)
-      
-      // Save updated balance to localStorage
-      localStorage.setItem("dashboardBalance", formattedBalance)
-      
-      return {currentBalance, newBalance}
-    }
-  
-  const handleCopyAddress = async () => {
-    if (walletAddress) {
-      await navigator.clipboard.writeText(walletAddress);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000); // Hide the toast after 2 seconds
-    }
-  };
+    // Get current dashboard balance from localStorage
+    const dashboardBalanceStr = localStorage.getItem("dashboardBalance") || "4231.89"
+    const currentBalance = parseFloat(dashboardBalanceStr)
+    
+    // Calculate new balance based on whether this is a deposit or withdrawal
+    const newBalance = isDeposit 
+      ? currentBalance + amount 
+      : currentBalance - amount
+    
+    // Format to 2 decimal places
+    const formattedBalance = newBalance.toFixed(2)
+    
+    // Save updated balance to localStorage
+    localStorage.setItem("dashboardBalance", formattedBalance)
+    
+    return {currentBalance, newBalance}
+  }
 
   // Function to fetch balance from Aptos Devnet and convert to USD
   const fetchBalance = async (address: string) => {
     try {
       const response = await fetch(
-        `https://fullnode.testnet.aptoslabs.com/v1/accounts/${address}/resource/0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>`
         `https://fullnode.testnet.aptoslabs.com/v1/accounts/${address}/resource/0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>`
       )
       const data = await response.json()
@@ -236,11 +225,12 @@ export default function WalletPage() {
       // Sign and submit the transaction using Petra wallet
       const pendingTransaction = await window.aptos.signAndSubmitTransaction(payload)
       
+      // Update dashboard balance in localStorage
+      const {currentBalance, newBalance} = updateDashboardBalance(amount, false)
+      
       // Wait for transaction to be confirmed
       await aptosClient.waitForTransaction(pendingTransaction.hash)
       
-      // Update dashboard balance in localStorage
-      const {currentBalance, newBalance} = updateDashboardBalance(amount, false)
       
       console.log('Withdrawal successful:', pendingTransaction)
       alert(`Withdrawal successful! $${amount} transferred. Dashboard balance updated from $${currentBalance.toFixed(2)} to $${newBalance.toFixed(2)}`)
@@ -383,21 +373,10 @@ export default function WalletPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Wallet Address</CardTitle>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={handleCopyAddress}
-                >
-                  <Copy className="h-4 w-4 text-muted-foreground" />
-                  <span className="sr-only">Copy Address</span>
-                </Button>
+                <Copy className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div
-                  className="text-sm font-mono bg-muted p-2 rounded-md overflow-x-auto cursor-pointer"
-                  onClick={handleCopyAddress}
-                >
+                <div className="text-sm font-mono bg-muted p-2 rounded-md overflow-x-auto">
                   {walletAddress || "Connect your wallet to view address"}
                 </div>
                 <p className="text-xs text-muted-foreground pt-2">
@@ -655,17 +634,6 @@ export default function WalletPage() {
           </Tabs>
         </div>
       </main>
-      <ToastProvider>
-        <Toast
-          open={isCopied}
-          onOpenChange={setIsCopied}
-          variant="success"
-          position="top"
-        >
-        Copied to clipboard!
-        </Toast>
-        <ToastViewport />
-      </ToastProvider>
     </div>
   )
 }
