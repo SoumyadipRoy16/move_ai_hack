@@ -20,6 +20,7 @@ export default function Dashboard() {
     return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
   
+
   useEffect(() => {
     // Initialize from localStorage if available
     const storedBalance = localStorage.getItem("dashboardBalance")
@@ -27,6 +28,7 @@ export default function Dashboard() {
       const numBalance = parseFloat(storedBalance)
       setDashboardBalance(formatWithCommas(numBalance.toFixed(2)))
       
+
       if (previousBalance === null) {
         setPreviousBalance(numBalance)
       }

@@ -48,6 +48,26 @@ export default function WalletPage() {
     if (savedAvailableBalance) setAvailableBalance(savedAvailableBalance)
   }, [])
 
+    // Function to update the dashboard balance in localStorage
+  const updateDashboardBalance = (amount, isDeposit) => {
+      // Get current dashboard balance from localStorage
+      const dashboardBalanceStr = localStorage.getItem("dashboardBalance") || "4231.89"
+      const currentBalance = parseFloat(dashboardBalanceStr)
+      
+      // Calculate new balance based on whether this is a deposit or withdrawal
+      const newBalance = isDeposit 
+        ? currentBalance + amount 
+        : currentBalance - amount
+      
+      // Format to 2 decimal places
+      const formattedBalance = newBalance.toFixed(2)
+      
+      // Save updated balance to localStorage
+      localStorage.setItem("dashboardBalance", formattedBalance)
+      
+      return {currentBalance, newBalance}
+    }
+  
   const handleCopyAddress = async () => {
     if (walletAddress) {
       await navigator.clipboard.writeText(walletAddress);
@@ -60,6 +80,7 @@ export default function WalletPage() {
   const fetchBalance = async (address: string) => {
     try {
       const response = await fetch(
+        `https://fullnode.testnet.aptoslabs.com/v1/accounts/${address}/resource/0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>`
         `https://fullnode.testnet.aptoslabs.com/v1/accounts/${address}/resource/0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>`
       )
       const data = await response.json()
