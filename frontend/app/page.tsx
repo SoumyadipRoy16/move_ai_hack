@@ -5,10 +5,10 @@
 import Link from "next/link"
 import { useState } from "react"
 import { ArrowRight, Bot, LineChart, Shield, Wallet } from "lucide-react"
-import { Button } from "@/frontend/components/ui/button"
-import { AuthForm } from "@/frontend/components/auth-form"
-import { CardStack } from "@/frontend/components/ui/card-stack"
-import { FlipWords } from "@/frontend/components/ui/flip-words"
+import { Button } from "@/components/ui/button"
+import { AuthForm } from "@/components/auth-form"
+import { CardStack } from "@/components/ui/card-stack"
+import { FlipWords } from "@/components/ui/flip-words"
 import { useWallet } from "@/hooks/use-wallet"
 
 export default function Home() {

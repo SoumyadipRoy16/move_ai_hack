@@ -1,11 +1,11 @@
 import Link from "next/link"
 import { Bot, Check, Copy, LineChart, MessageSquare, Plus, Settings } from "lucide-react"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/frontend/components/ui/avatar"
-import { Button } from "@/frontend/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/frontend/components/ui/card"
-import { Input } from "@/frontend/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/frontend/components/ui/tabs"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function BotPage() {
   return (
