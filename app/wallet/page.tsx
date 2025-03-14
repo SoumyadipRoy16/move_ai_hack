@@ -10,7 +10,10 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Toast, ToastProvider, ToastViewport } from "@/components/ui/toast"
 import { Eye, EyeOff } from "lucide-react"
-import { AptosClient, BCS, TxnBuilderTypes, Types } from "aptos" // Added more imports
+import { AptosClient, BCS, TxnBuilderTypes, Types } from "aptos"
+import { useWallet } from "@/hooks/use-wallet"
+import nacl from "tweetnacl"
+import crypto from "crypto"
 
 declare global {
   interface Window {
@@ -26,47 +29,57 @@ const FIXED_ADDRESS = '0x9c206f7c7f9e3e345695e3f32bef3d27a7667080d6e8efaa2a056d0
 const MIN_BALANCE = 500
 
 export default function WalletPage() {
-  const [walletAddress, setWalletAddress] = useState<string | null>(null)
-  const [isBalanceVisible, setIsBalanceVisible] = useState(true);
-  const [isCopied, setIsCopied] = useState(false);
-  const [totalBalance, setTotalBalance] = useState<string>("$ --")
-  const [availableBalance, setAvailableBalance] = useState<string>("$ --")
-  const [depositAmount, setDepositAmount] = useState<string>('')
-  const [withdrawAmount, setWithdrawAmount] = useState<string>('')
-
-  // Load wallet data from localStorage on component mount
-  useEffect(() => {
-    const savedWalletAddress = localStorage.getItem("walletAddress")
-    const savedTotalBalance = localStorage.getItem("totalBalance")
-    const savedAvailableBalance = localStorage.getItem("availableBalance")
-
-    if (savedWalletAddress) {
-      setWalletAddress(savedWalletAddress)
-      fetchBalance(savedWalletAddress) // Fetch balance if wallet address is saved
-    }
-    if (savedTotalBalance) setTotalBalance(savedTotalBalance)
-    if (savedAvailableBalance) setAvailableBalance(savedAvailableBalance)
-  }, [])
-
+    const { walletAddress, disconnectWallet } = useWallet()
+    const [isBalanceVisible, setIsBalanceVisible] = useState(true)
+    const [isCopied, setIsCopied] = useState(false)
+    const [totalBalance, setTotalBalance] = useState<string>("$ --")
+    const [availableBalance, setAvailableBalance] = useState<string>("$ --")
+    const [depositAmount, setDepositAmount] = useState<string>('')
+    const [withdrawAmount, setWithdrawAmount] = useState<string>('')
+  
+    // Fetch balance when walletAddress changes
+    useEffect(() => {
+      if (walletAddress) {
+        fetchBalance(walletAddress)
+      }
+    }, [walletAddress])
+  
+    // Load wallet data from localStorage on component mount
+    useEffect(() => {
+      const savedTotalBalance = localStorage.getItem("totalBalance")
+      const savedAvailableBalance = localStorage.getItem("availableBalance")
+    
+      if (walletAddress) {
+        fetchBalance(walletAddress) // Fetch balance if wallet address is already set
+      }
+      if (savedTotalBalance) setTotalBalance(savedTotalBalance)
+      if (savedAvailableBalance) setAvailableBalance(savedAvailableBalance)
+    }, [walletAddress])
+  
     // Function to update the dashboard balance in localStorage
-  const updateDashboardBalance = (amount, isDeposit) => {
-      // Get current dashboard balance from localStorage
-      const dashboardBalanceStr = localStorage.getItem("dashboardBalance") || "4231.89"
-      const currentBalance = parseFloat(dashboardBalanceStr)
-      
-      // Calculate new balance based on whether this is a deposit or withdrawal
-      const newBalance = isDeposit 
-        ? currentBalance + amount 
-        : currentBalance - amount
-      
-      // Format to 2 decimal places
-      const formattedBalance = newBalance.toFixed(2)
-      
-      // Save updated balance to localStorage
-      localStorage.setItem("dashboardBalance", formattedBalance)
-      
-      return {currentBalance, newBalance}
-    }
+    interface BalanceUpdate {
+      currentBalance: number
+      newBalance: number
+    }  
+
+  const updateDashboardBalance = (amount: number, isDeposit: boolean): BalanceUpdate => {
+    // Get current dashboard balance from localStorage
+    const dashboardBalanceStr: string = localStorage.getItem("dashboardBalance") || "4231.89"
+    const currentBalance: number = parseFloat(dashboardBalanceStr)
+    
+    // Calculate new balance based on whether this is a deposit or withdrawal
+    const newBalance: number = isDeposit 
+      ? currentBalance + amount 
+      : currentBalance - amount
+    
+    // Format to 2 decimal places
+    const formattedBalance: string = newBalance.toFixed(2)
+    
+    // Save updated balance to localStorage
+    localStorage.setItem("dashboardBalance", formattedBalance)
+    
+    return {currentBalance, newBalance}
+  }
   
   const handleCopyAddress = async () => {
     if (walletAddress) {
@@ -80,7 +93,6 @@ export default function WalletPage() {
   const fetchBalance = async (address: string) => {
     try {
       const response = await fetch(
-        `https://fullnode.testnet.aptoslabs.com/v1/accounts/${address}/resource/0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>`
         `https://fullnode.testnet.aptoslabs.com/v1/accounts/${address}/resource/0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>`
       )
       const data = await response.json()
@@ -110,37 +122,6 @@ export default function WalletPage() {
       }
     } catch (error) {
       console.error("Failed to fetch balance:", error)
-    }
-  }
-
-  const connectWallet = async () => {
-    if (typeof window.aptos !== "undefined") {
-      try {
-        const response = await window.aptos.connect()
-        setWalletAddress(response.address)
-        localStorage.setItem("walletAddress", response.address) // Save wallet address to localStorage
-        fetchBalance(response.address) // Fetch balance after connecting
-      } catch (error) {
-        console.error("Failed to connect wallet:", error)
-      }
-    } else {
-      console.error("Petra wallet is not installed")
-    }
-  }
-
-  const disconnectWallet = async () => {
-    if (typeof window.aptos !== "undefined") {
-      try {
-        await window.aptos.disconnect() // Disconnect the wallet
-        setWalletAddress(null)
-        setTotalBalance("$ --")
-        setAvailableBalance("$ --")
-        localStorage.removeItem("walletAddress") // Remove wallet address from localStorage
-        localStorage.removeItem("totalBalance") // Remove total balance from localStorage
-        localStorage.removeItem("availableBalance") // Remove available balance from localStorage
-      } catch (error) {
-        console.error("Failed to disconnect wallet:", error)
-      }
     }
   }
 
@@ -192,7 +173,7 @@ export default function WalletPage() {
       window.dispatchEvent(event)
     } catch (error) {
       console.error('Deposit failed:', error)
-      alert('Deposit failed: ' + (error.message || 'Unknown error'))
+      alert('Deposit failed: ' + ((error instanceof Error) ? error.message : 'Unknown error'))
     }
   }
 
@@ -256,10 +237,9 @@ export default function WalletPage() {
       window.dispatchEvent(event)
     } catch (error) {
       console.error('Withdrawal failed:', error)
-      alert('Withdrawal failed: ' + (error.message || 'Unknown error'))
+      alert('Withdrawal failed: ' + ((error instanceof Error) ? error.message : 'Unknown error'))
     }
   }
-
   return (
     <div className="flex min-h-screen dark:bg-dot-white/[0.2] bg-dot-black/[0.2] flex-col">
       <div className="absolute pointer-events-none inset-0 flex items-center justify-center dark:bg-black bg-white [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)] z-0"></div>
@@ -289,9 +269,13 @@ export default function WalletPage() {
             </Link>
           </nav>
           <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" className="rounded-full">
-              <Settings className="h-4 w-4" />
-              <span className="sr-only">Settings</span>
+            <Button
+              onClick={disconnectWallet}
+              className="gap-1"
+              size="sm"
+            >
+              <Wallet className="h-4 w-4" />
+              Disconnect Wallet
             </Button>
             <Avatar>
               <AvatarImage src="/placeholder.svg?height=32&width=32" alt="User" />
@@ -315,22 +299,6 @@ export default function WalletPage() {
               <Button className="gap-1">
                 <Plus className="h-4 w-4" />
                 Add Funds
-              </Button>
-              <Button
-                onClick={walletAddress ? disconnectWallet : connectWallet}
-                className="gap-1"
-              >
-                {walletAddress ? (
-                  <>
-                    <Wallet className="h-4 w-4" />
-                    Disconnect Wallet
-                  </>
-                ) : (
-                  <>
-                    <Wallet className="h-4 w-4" />
-                    Connect Wallet
-                  </>
-                )}
               </Button>
             </div>
           </div>

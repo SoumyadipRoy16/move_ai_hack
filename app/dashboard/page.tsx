@@ -13,10 +13,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export default function Dashboard() {
   const [dashboardBalance, setDashboardBalance] = useState("4,231.89");
   const [percentChange, setPercentChange] = useState("+20.1%");
-  const [previousBalance, setPreviousBalance] = useState(null);
+  const [previousBalance, setPreviousBalance] = useState<number | null>(null);
   
   // Function to format number with commas
-  const formatWithCommas = (number) => {
+  interface FormatWithCommasFunction {
+    (number: number | string): string;
+  }
+
+  const formatWithCommas: FormatWithCommasFunction = (number) => {
     return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
   
@@ -35,16 +39,17 @@ export default function Dashboard() {
     }
     
     // Listen for real-time updates
-    const handleBalanceUpdate = (event) => {
+    const handleBalanceUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent<{ newBalance: string }>
       const oldBalance = previousBalance || parseFloat(dashboardBalance.replace(/,/g, ''))
-      const newBalance = parseFloat(event.detail.newBalance)
+      const newBalance = parseFloat(customEvent.detail.newBalance)
       
       // Update dashboard balance
       setDashboardBalance(formatWithCommas(newBalance.toFixed(2)))
       
       // Calculate and update percent change
       const change = ((newBalance - oldBalance) / oldBalance * 100).toFixed(1)
-      const formattedChange = change > 0 ? `+${change}%` : `${change}%`
+      const formattedChange = parseFloat(change) > 0 ? `+${change}%` : `${change}%`
       setPercentChange(formattedChange)
       
       setPreviousBalance(newBalance)
@@ -72,7 +77,7 @@ export default function Dashboard() {
         
         // Calculate and update percent change
         const change = ((numBalance - oldBalance) / oldBalance * 100).toFixed(1)
-        const formattedChange = change > 0 ? `+${change}%` : `${change}%`
+        const formattedChange = parseFloat(change) > 0 ? `+${change}%` : `${change}%`
         setPercentChange(formattedChange)
         
         // Update previous balance for next calculation

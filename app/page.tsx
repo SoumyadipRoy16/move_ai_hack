@@ -1,3 +1,5 @@
+//app/page.tsx
+
 "use client"
 
 import Link from "next/link"
@@ -7,9 +9,11 @@ import { Button } from "@/components/ui/button"
 import { AuthForm } from "@/components/auth-form"
 import { CardStack } from "@/components/ui/card-stack"
 import { FlipWords } from "@/components/ui/flip-words"
+import { useWallet } from "@/hooks/use-wallet"
 
 export default function Home() {
   const [showAuthForm, setShowAuthForm] = useState(false)
+  const { walletAddress, connectWallet, disconnectWallet } = useWallet()
   const words = ["Trading","Intelligence", "Detection", "Identification"];
   // Define the stack of cards
   const cards = [
@@ -65,11 +69,22 @@ export default function Home() {
             </Link>
           </nav>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => setShowAuthForm(true)}>
-              Login
-            </Button>
-            <Button size="sm" onClick={() => setShowAuthForm(true)}>
-              Get Started
+            <Button
+              onClick={walletAddress ? disconnectWallet : connectWallet}
+              className="gap-1"
+              size="sm"
+            >
+              {walletAddress ? (
+                <>
+                  <Wallet className="h-4 w-4" />
+                  Disconnect Wallet
+                </>
+              ) : (
+                <>
+                  <Wallet className="h-4 w-4" />
+                  Connect Wallet
+                </>
+              )}
             </Button>
           </div>
         </div>
@@ -88,8 +103,17 @@ export default function Home() {
                     advanced AI agent.
                 </p>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Link href="/dashboard">
-                    <Button size="lg" className="gap-1.5">
+                <Link href="/dashboard">
+                    <Button
+                      size="lg"
+                      className="gap-1.5"
+                      onClick={(e) => {
+                        if (!walletAddress) {
+                          e.preventDefault()
+                          alert("Please connect your wallet first")
+                        }
+                      }}
+                    >
                       Get Started
                       <ArrowRight className="h-4 w-4" />
                     </Button>
