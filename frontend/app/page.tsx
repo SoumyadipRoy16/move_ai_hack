@@ -3,13 +3,14 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ArrowRight, Bot, LineChart, Shield, Wallet } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AuthForm } from "@/components/auth-form"
 import { CardStack } from "@/components/ui/card-stack"
 import { FlipWords } from "@/components/ui/flip-words"
 import { useWallet } from "@/hooks/use-wallet"
+import Lenis from "@studio-freight/lenis";
 
 export default function Home() {
   const [showAuthForm, setShowAuthForm] = useState(false)
@@ -47,6 +48,47 @@ export default function Home() {
       ),
     },
   ]
+
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.0,
+      easing: (t) => 1 - Math.pow(1 - t, 3),
+      gestureOrientation: "vertical",
+      touchMultiplier: 2,
+      infinite: false,
+    });
+
+    function raf(time: number): void {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+    requestAnimationFrame(raf);
+
+    const handleLinkClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (
+        target?.tagName === "A" &&
+        (target as HTMLAnchorElement).getAttribute("href")?.startsWith("#")
+      ) {
+        event.preventDefault();
+        const sectionId: string | null = (
+          target as HTMLAnchorElement
+        ).getAttribute("href");
+        const section: HTMLElement | null = document.querySelector(
+          sectionId as string
+        );
+        if (section) {
+          lenis.scrollTo(section, { offset: -10 });
+        }
+      }
+    };
+
+    document.addEventListener("click", handleLinkClick);
+
+    return () => {
+      document.removeEventListener("click", handleLinkClick);
+    };
+  }, []);
 
   return (
     <div className="flex min-h-screen dark:bg-dot-white/[0.2] bg-dot-black/[0.2] flex-col">
@@ -89,8 +131,8 @@ export default function Home() {
           </div>
         </div>
       </header>
-      <main className="flex-1 z-10">
-        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48">
+      <main className="flex-1 z-50">
+        <section className="z-50 w-full py-12 md:py-24 lg:py-32 xl:py-48">
           <div className="container px-4 md:px-6">
             <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
               {/* Left Column: Heading and Description */}
@@ -98,7 +140,7 @@ export default function Home() {
                 <div className="text-6xl font-bold tracking-tighter text-neutral-600 dark:text-neutral-400">
                     &nbsp;AI-Powered Crypto <FlipWords words={words}/>Bot
                 </div>
-                <p className="max-w-[600px] text-muted-foreground md:text-xl">
+                <p className="max-w-[600px] z-50 text-muted-foreground md:text-xl">
                     Automatically detect market opportunities from Telegram groups and trade with confidence using our
                     advanced AI agent.
                 </p>

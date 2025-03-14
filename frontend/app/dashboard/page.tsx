@@ -3,12 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Bot, ChevronDown, ChevronUp, DollarSign, LineChart, Plus, Settings, Wallet } from "lucide-react";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Lenis from "@studio-freight/lenis"
 
 export default function Dashboard() {
   const [dashboardBalance, setDashboardBalance] = useState("4,231.89");
@@ -92,6 +92,46 @@ export default function Dashboard() {
     return () => clearInterval(intervalId)
   }, [dashboardBalance, previousBalance])
 
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.0,
+      easing: (t) => 1 - Math.pow(1 - t, 3),
+      gestureOrientation: "vertical",
+      touchMultiplier: 2,
+      infinite: false,
+    });
+
+    function raf(time: number): void {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+    requestAnimationFrame(raf);
+
+    const handleLinkClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (
+        target?.tagName === "A" &&
+        (target as HTMLAnchorElement).getAttribute("href")?.startsWith("#")
+      ) {
+        event.preventDefault();
+        const sectionId: string | null = (
+          target as HTMLAnchorElement
+        ).getAttribute("href");
+        const section: HTMLElement | null = document.querySelector(
+          sectionId as string
+        );
+        if (section) {
+          lenis.scrollTo(section, { offset: -10 });
+        }
+      }
+    };
+
+    document.addEventListener("click", handleLinkClick);
+
+    return () => {
+      document.removeEventListener("click", handleLinkClick);
+    };
+  }, []);
 
   return (
     <div className="flex min-h-screen dark:bg-dot-white/[0.2] bg-dot-black/[0.2] flex-col">

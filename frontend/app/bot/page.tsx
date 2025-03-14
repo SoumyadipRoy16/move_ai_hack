@@ -1,13 +1,56 @@
+"use client"
+
 import Link from "next/link"
 import { Bot, Check, Copy, LineChart, MessageSquare, Plus, Settings } from "lucide-react"
-
+import { useEffect } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import Lenis from "@studio-freight/lenis"
 
 export default function BotPage() {
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.0,
+      easing: (t) => 1 - Math.pow(1 - t, 3),
+      gestureOrientation: "vertical",
+      touchMultiplier: 2,
+      infinite: false,
+    });
+
+    function raf(time: number): void {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+    requestAnimationFrame(raf);
+
+    const handleLinkClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (
+        target?.tagName === "A" &&
+        (target as HTMLAnchorElement).getAttribute("href")?.startsWith("#")
+      ) {
+        event.preventDefault();
+        const sectionId: string | null = (
+          target as HTMLAnchorElement
+        ).getAttribute("href");
+        const section: HTMLElement | null = document.querySelector(
+          sectionId as string
+        );
+        if (section) {
+          lenis.scrollTo(section, { offset: -10 });
+        }
+      }
+    };
+
+    document.addEventListener("click", handleLinkClick);
+
+    return () => {
+      document.removeEventListener("click", handleLinkClick);
+    };
+  }, []);
   return (
     <div className="flex min-h-screen dark:bg-dot-white/[0.2] bg-dot-black/[0.2] flex-col">
       <div className="absolute pointer-events-none inset-0 flex items-center justify-center dark:bg-black bg-white [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)] z-0"></div>

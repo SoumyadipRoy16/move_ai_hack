@@ -12,8 +12,7 @@ import { Toast, ToastProvider, ToastViewport } from "@/components/ui/toast"
 import { Eye, EyeOff } from "lucide-react"
 import { AptosClient, BCS, TxnBuilderTypes, Types } from "aptos"
 import { useWallet } from "@/hooks/use-wallet"
-import nacl from "tweetnacl"
-import crypto from "crypto"
+import Lenis from "@studio-freight/lenis"
 
 declare global {
   interface Window {
@@ -30,6 +29,8 @@ const MIN_BALANCE = 500
 
 export default function WalletPage() {
     const { walletAddress, disconnectWallet } = useWallet()
+    const [selectedDepositMethod, setSelectedDepositMethod] = useState<"crypto" | null>(null)
+    const [selectedWithdrawalMethod, setSelectedWithdrawalMethod] = useState<"crypto" | null>(null)
     const [isBalanceVisible, setIsBalanceVisible] = useState(true)
     const [isCopied, setIsCopied] = useState(false)
     const [totalBalance, setTotalBalance] = useState<string>("$ --")
@@ -93,7 +94,7 @@ export default function WalletPage() {
   const fetchBalance = async (address: string) => {
     try {
       const response = await fetch(
-        `https://fullnode.testnet.aptoslabs.com/v1/accounts/${address}/resource/0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>`
+        `https://fullnode.devnet.aptoslabs.com/v1/accounts/${address}/resource/0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>`
       )
       const data = await response.json()
 
@@ -240,6 +241,48 @@ export default function WalletPage() {
       alert('Withdrawal failed: ' + ((error instanceof Error) ? error.message : 'Unknown error'))
     }
   }
+
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.0,
+      easing: (t) => 1 - Math.pow(1 - t, 3),
+      gestureOrientation: "vertical",
+      touchMultiplier: 2,
+      infinite: false,
+    });
+
+    function raf(time: number): void {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+    requestAnimationFrame(raf);
+
+    const handleLinkClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (
+        target?.tagName === "A" &&
+        (target as HTMLAnchorElement).getAttribute("href")?.startsWith("#")
+      ) {
+        event.preventDefault();
+        const sectionId: string | null = (
+          target as HTMLAnchorElement
+        ).getAttribute("href");
+        const section: HTMLElement | null = document.querySelector(
+          sectionId as string
+        );
+        if (section) {
+          lenis.scrollTo(section, { offset: -10 });
+        }
+      }
+    };
+
+    document.addEventListener("click", handleLinkClick);
+
+    return () => {
+      document.removeEventListener("click", handleLinkClick);
+    };
+  }, []);
+
   return (
     <div className="flex min-h-screen dark:bg-dot-white/[0.2] bg-dot-black/[0.2] flex-col">
       <div className="absolute pointer-events-none inset-0 flex items-center justify-center dark:bg-black bg-white [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)] z-0"></div>
@@ -391,19 +434,37 @@ export default function WalletPage() {
                   <div className="space-y-2">
                     <div className="font-medium text-sm">Select Deposit Method</div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="flex flex-col items-center justify-center border rounded-lg p-4 cursor-pointer hover:border-primary">
+                      {/* Cryptocurrency Option */}
+                      <div
+                        className={`flex flex-col items-center justify-center border rounded-lg p-4 cursor-pointer ${
+                          selectedDepositMethod === "crypto"
+                            ? "border-primary bg-primary/10"
+                            : "hover:border-primary"
+                        }`}
+                        onClick={() => setSelectedDepositMethod("crypto")}
+                      >
                         <div className="font-bold mb-1">Cryptocurrency</div>
                         <div className="text-xs text-muted-foreground text-center">
                           Deposit using BTC, ETH, or other cryptocurrencies
                         </div>
                       </div>
-                      <div className="flex flex-col items-center justify-center border rounded-lg p-4 cursor-pointer hover:border-primary">
+
+                      {/* Credit Card Option (Disabled) */}
+                      <div
+                        className="flex flex-col items-center justify-center border rounded-lg p-4 cursor-not-allowed opacity-50"
+                        title="Credit Card deposits are currently unavailable"
+                      >
                         <div className="font-bold mb-1">Credit Card</div>
                         <div className="text-xs text-muted-foreground text-center">
                           Instant deposit using Visa, Mastercard, or Amex
                         </div>
                       </div>
-                      <div className="flex flex-col items-center justify-center border rounded-lg p-4 cursor-pointer hover:border-primary">
+
+                      {/* Bank Transfer Option (Disabled) */}
+                      <div
+                        className="flex flex-col items-center justify-center border rounded-lg p-4 cursor-not-allowed opacity-50"
+                        title="Bank Transfer deposits are currently unavailable"
+                      >
                         <div className="font-bold mb-1">Bank Transfer</div>
                         <div className="text-xs text-muted-foreground text-center">
                           Deposit via ACH or wire transfer (1-3 business days)
@@ -420,7 +481,12 @@ export default function WalletPage() {
                         value={depositAmount}
                         onChange={(e) => setDepositAmount(e.target.value)}
                       />
-                      <Button onClick={handleDeposit}>Deposit</Button>
+                      <Button
+                        onClick={handleDeposit}
+                        disabled={selectedDepositMethod !== "crypto"} // Disable if Crypto is not selected
+                      >
+                        Deposit
+                      </Button>
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Minimum deposit: $100. Funds will be available for trading immediately.
@@ -491,19 +557,41 @@ export default function WalletPage() {
                   <div className="space-y-2">
                     <div className="font-medium text-sm">Select Withdrawal Method</div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="flex flex-col items-center justify-center border rounded-lg p-4 cursor-pointer hover:border-primary">
+                      {/* Cryptocurrency Option */}
+                      <div
+                        className={`flex flex-col items-center justify-center border rounded-lg p-4 cursor-pointer ${
+                          selectedWithdrawalMethod === "crypto"
+                            ? "border-primary bg-primary/10"
+                            : "hover:border-primary"
+                        }`}
+                        onClick={() => setSelectedWithdrawalMethod("crypto")}
+                      >
                         <div className="font-bold mb-1">Cryptocurrency</div>
-                        <div className="text-xs text-muted-foreground text-center">Withdraw to your crypto wallet</div>
+                        <div className="text-xs text-muted-foreground text-center">
+                          Withdraw to your crypto wallet
+                        </div>
                       </div>
-                      <div className="flex flex-col items-center justify-center border rounded-lg p-4 cursor-pointer hover:border-primary">
+
+                      {/* Bank Account Option (Disabled) */}
+                      <div
+                        className="flex flex-col items-center justify-center border rounded-lg p-4 cursor-not-allowed opacity-50"
+                        title="Bank Account withdrawals are currently unavailable"
+                      >
                         <div className="font-bold mb-1">Bank Account</div>
                         <div className="text-xs text-muted-foreground text-center">
                           Withdraw to your linked bank account
                         </div>
                       </div>
-                      <div className="flex flex-col items-center justify-center border rounded-lg p-4 cursor-pointer hover:border-primary">
+
+                      {/* PayPal Option (Disabled) */}
+                      <div
+                        className="flex flex-col items-center justify-center border rounded-lg p-4 cursor-not-allowed opacity-50"
+                        title="PayPal withdrawals are currently unavailable"
+                      >
                         <div className="font-bold mb-1">PayPal</div>
-                        <div className="text-xs text-muted-foreground text-center">Withdraw to your PayPal account</div>
+                        <div className="text-xs text-muted-foreground text-center">
+                          Withdraw to your PayPal account
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -516,7 +604,12 @@ export default function WalletPage() {
                         value={withdrawAmount}
                         onChange={(e) => setWithdrawAmount(e.target.value)}
                       />
-                      <Button onClick={handleWithdraw}>Withdraw</Button>
+                      <Button
+                        onClick={handleWithdraw}
+                        disabled={selectedWithdrawalMethod !== "crypto"} // Disable if Crypto is not selected
+                      >
+                        Withdraw
+                      </Button>
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Available for withdrawal: $1,245.32. Withdrawals are processed within 24 hours.
