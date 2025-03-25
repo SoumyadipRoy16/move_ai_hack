@@ -40,7 +40,7 @@ python tele.py
 
 #### **3️⃣ Start the Frontend**
 ```bash
-cd ../frntend
+cd ../frontend
 npm install
 npm run dev
 ```
