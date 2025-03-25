@@ -1,0 +1,5 @@
+.env
+.aptos/
+temp_package/
+deploy/
+__pycache__/

@@ -1,0 +1,48 @@
+POST http://0.0.0.0:8000/init
+Content-Type: application/json
+
+{
+    "user_id": "test1",
+    "phone": "+91XXXXXXXXXX"
+}
+
+POST http://0.0.0.0:8000/verify
+Content-Type: application/json
+
+{
+    "user_id": "test1",
+    "otp_code": "94025"
+}
+
+POST http://0.0.0.0:8000/send-message?user_id=test1
+Content-Type: application/json
+
+{
+    "recipient": "recipient_username",
+    "message": "test"
+}
+
+GET http://0.0.0.0:8000/user-groups/test1
+
+
+POST http://0.0.0.0:8000/watch-group
+Content-Type: application/json
+
+{
+  "user_id": "test1",
+  "group_name": "web3 testing",
+  "topic_name": "test" 
+}
+
+GET http://0.0.0.0:8000/get-queue
+
+GET http://0.0.0.0:8000/watched-groups/test1
+
+
+POST http://0.0.0.0:8000/test
+Content-Type: application/json
+
+{
+    "token": "WINK",
+    "sentiment": "negative"
+}

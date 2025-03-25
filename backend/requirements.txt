@@ -1,0 +1,12 @@
+cryptography
+eth_account
+fastapi
+groq
+langsmith
+motor
+pydantic
+pydantic_core
+python-dotenv
+Telethon
+uvicorn
+web3
